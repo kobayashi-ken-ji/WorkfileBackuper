@@ -2,9 +2,11 @@
 #include <Windows.h>
 
 //=============================================================================
-// タスクトレイアイコン [クラス]
+// タスクトレイアイコン
 //=============================================================================
 
+// タスクトレイアイコン
+// アイコン追加・削除、デスクトップ通知 を行う
 class TrayIcon {
 private:
     // どのメンバが有効か
@@ -50,7 +52,7 @@ public:
 
     // タスクトレイアイコン 削除
     void deleteIcon() {
-        //assert(iconData.hWnd && iconData.hIcon);
+        assert(iconData.hWnd && iconData.hIcon);
         Shell_NotifyIconW(NIM_DELETE, &iconData);
     }
 

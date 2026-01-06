@@ -131,7 +131,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h" />
     <ClInclude Include="include\ApplicationMutex.h" />
     <ClInclude Include="include\Backup.h" />
     <ClInclude Include="include\ChildWindow.h" />
@@ -140,19 +139,15 @@
     <ClInclude Include="include\DeviceContext.h" />
     <ClInclude Include="include\main.h" />
     <ClInclude Include="include\MainFont.h" />
-    <ClInclude Include="include\MenuID.h" />
     <ClInclude Include="include\MessageBoxCenter.h" />
     <ClInclude Include="include\Rect.h" />
     <ClInclude Include="include\ThreadStopFlag.h" />
     <ClInclude Include="include\TrayIcon.h" />
     <ClInclude Include="include\UiElements.h" />
     <ClInclude Include="include\WindowProc.h" />
-    <ClInclude Include="Resource.h" />
-    <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\Backup Overwrite\MENUID.rc" />
-    <ResourceCompile Include="Workfile Backuper.rc" />
+    <ResourceCompile Include="MENUID.rc" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Workfile Backuper.ico" />

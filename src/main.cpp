@@ -10,7 +10,6 @@
 #include "../include/main.h"
 #include "../include/Constants.h"
 #include "../include/ApplicationMutex.h"
-#include "../include/MenuID.h"
 #include "../include/WindowProc.h"
 
 // 新UIデザインを使用

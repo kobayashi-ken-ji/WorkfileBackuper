@@ -1,14 +1,4 @@
-//=============================================================================
-// メニューバーの構造
-//=============================================================================
-
-/*
-    記述方法
-        ○ 	BEGIN END
-        × 	{}				古い書き方？
-*/
-
-#include "MenuID.h"
+#include "include/Constants.h"
 
 // アイコン
-MENU_ICON    ICON    "Backup Overwrite Icon.ico"
+MENU_ICON    ICON    "Workfile Backuper.ico"

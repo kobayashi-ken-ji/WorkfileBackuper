@@ -36,7 +36,7 @@ class Config : public ConfigStruct {
 public:
 
     // •Û‘¶æ
-    static constexpr char FILE_PATH[] = "BackupOverwrite_config.dat";
+    static constexpr char FILE_PATH[] = "WorkfileBackuper_config.dat";
 
     // İ’èƒtƒ@ƒCƒ‹‚ğ“Ç
     bool loadFile();
