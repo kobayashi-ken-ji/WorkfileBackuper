@@ -132,19 +132,34 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="framework.h" />
+    <ClInclude Include="include\ApplicationMutex.h" />
+    <ClInclude Include="include\Backup.h" />
+    <ClInclude Include="include\ChildWindow.h" />
+    <ClInclude Include="include\Config.h" />
+    <ClInclude Include="include\Constants.h" />
+    <ClInclude Include="include\DeviceContext.h" />
+    <ClInclude Include="include\main.h" />
+    <ClInclude Include="include\MainFont.h" />
+    <ClInclude Include="include\MenuID.h" />
+    <ClInclude Include="include\MessageBoxCenter.h" />
+    <ClInclude Include="include\Rect.h" />
+    <ClInclude Include="include\ThreadStopFlag.h" />
+    <ClInclude Include="include\TrayIcon.h" />
+    <ClInclude Include="include\UiElements.h" />
+    <ClInclude Include="include\WindowProc.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="Workfile Backuper.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Workfile Backuper.cpp" />
-  </ItemGroup>
-  <ItemGroup>
+    <ResourceCompile Include="..\Backup Overwrite\MENUID.rc" />
     <ResourceCompile Include="Workfile Backuper.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="small.ico" />
     <Image Include="Workfile Backuper.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Config.cpp" />
+    <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,0 +1,47 @@
+#pragma once
+#include "windows.h"
+
+// アプリ名 / バージョン / コピーライト
+namespace AppInfo {
+    PCWSTR NAME      = L"Workfile Backuper";
+    PCWSTR NAME_JP   = L"作業ファイル自動バックアップ";
+    PCWSTR VERSION   = L"0.01";
+    PCWSTR COPYRIGHT = L"Copyright (C) 2023 Kobayashi Kenji";
+}
+
+// プロシージャ用
+constexpr int ID_TRAYICON = WM_USER + 100;	// トレイアイコンの識別ID
+constexpr int WM_TASKTRAY = WM_APP + 1;     // トレイクリック時などに送られるメッセージ
+constexpr int WM_SHOWINIT = WM_APP + 2;     // 「起動時に画面を開く」に関する処理用メッセージ
+
+#define MENU_ICON 2000
+
+// 子ウィンドウ識別子
+enum {
+    ID_START = 3000,
+    ID_SOURCE_FOLDER,
+    ID_DESTINATION_FOLDER,
+
+    ID_IMMEDIATE,
+    ID_INTERVAL,
+    ID_INTERVAL_MIN,
+    ID_INTERVAL_SEC,
+    ID_FOLDER_CHECK,
+    ID_NOTES,
+
+    ID_EXTENSION0,
+    ID_EXTENSION1,
+    ID_EXTENSION2,
+    ID_EXTENSION3,
+    ID_EXTENSION4,
+
+    ID_BOOT_WINDOW,
+    ID_NOTIFY,
+
+    ID_HELP_BUTTON,
+    ID_APPLY_BUTTON,
+    ID_STOP_BUTTON,
+    ID_CLOSE_BUTTON,
+
+    ID_HISTORY,
+};
