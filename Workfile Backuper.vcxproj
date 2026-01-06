@@ -144,6 +144,7 @@
     <ClInclude Include="include\ThreadStopFlag.h" />
     <ClInclude Include="include\TrayIcon.h" />
     <ClInclude Include="include\UiElements.h" />
+    <ClInclude Include="include\WatchFolder.h" />
     <ClInclude Include="include\WindowProc.h" />
   </ItemGroup>
   <ItemGroup>

@@ -147,7 +147,7 @@ UiElements::UiElements() :
     // 起動時に画面を表示、通知する
     optionPanel (PANEL.get(0,  CRLF2, CRLF * 2 + MARGIN_H)),
     bootWindow  (ID_BOOT_WINDOW, L"アプリ起動時にこの画面を開く", FULLWIDTH.get(0, MARGIN_H)),
-    notify      (ID_NOTIFY, L"通知をする", FULLWIDTH.get(0, CRLF)),
+    notify      (ID_NOTIFY, L"デスクトップ通知をする", FULLWIDTH.get(0, CRLF)),
 
     // ボタン
     helpButton  (ID_HELP_BUTTON , L"バージョン"  , DIVIDE4.get(0, CRLF2)),

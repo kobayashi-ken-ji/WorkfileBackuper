@@ -15,6 +15,7 @@
 #include "TrayIcon.h"
 #include "Config.h"
 #include "ThreadStopFlag.h"
+#include "WatchFolder.h"
 #include <filesystem>
 
 using namespace std;
@@ -225,93 +226,59 @@ private:
             FILE_NOTIFY_CHANGE_FILE_NAME |  // ファイル名の変更、作成、削除
             FILE_NOTIFY_CHANGE_LAST_WRITE;  // 最終書き込み日時の変更
 
-        // フォルダ内の監視 を開始
-        HANDLE watch = FindFirstChangeNotificationW(
-            config.sourceFolder,            // フォルダ
-            false,                          // サブディレクトリを監視するか
-            notifyFilter                    // 通知条件
-        );
+        // フォルダ監視 を開始 (スレッド停止フラグを渡す)
+        WatchFolder watch(
+            config.sourceFolder, notifyFilter, stopFlag.handle);
 
         // 開始に失敗
-        if (watch == INVALID_HANDLE_VALUE)
+        if (watch.isInvalidHandle())
             return AbortInfo::SOURCE_ERR;
-
-        // 監視のハンドルを解放 する関数
-        // return の前に必ず実行する
-        auto close = [=] () {
-            FindCloseChangeNotification(watch);
-        };
-
-        // 処理待ちをする要素 [フォルダ監視、スレッド停止フラグ監視]
-        const HANDLE hEvents[] = { watch, stopFlag.handle };
         
         // 監視ループ
         while (true) {
+            using namespace WatchFolderWaitResult;
+            DWORD result;
 
-            // 待ち処理 (フォルダ内変更 or 停止ボタンが押される)
-            DWORD result = WaitForMultipleObjects(
-                2,          // ハンドル数
-                hEvents,    // ハンドルの配列
-                false,      // 全てのハンドルが終了するまで待つか
-                INFINITE    // タイムアウト間隔 (ミリ秒)
-            );
+            // 待機 (フォルダ内変更 or スレッド停止信号 があるまで)
+            result = watch.waitChangeOrStopsignal(INFINITE);
+            if (result == STOPED ) return nullptr;      // 正常終了
+            if (result == CHANGED) {}                   // 次の処理へ
+            else return AbortInfo::WATCH_WAIT_ERR;      // 上記以外 → 失敗
 
-            // 結果判定
-            switch (result) {
 
-                // フォルダ内に変更あり → 次の処理へ
-                case WAIT_OBJECT_0 + 0:
-                    break;
+            // ユーザー指定の待機 (スレッド停止信号 or 時間経過 まで)
+            result = WaitForSingleObject(stopFlag.handle, 10*1000);
+            if (result == WAIT_OBJECT_0) return nullptr;    // 正常終了
+            if (result == WAIT_TIMEOUT) {}                  // 次の処理 へ
+            else return AbortInfo::WATCH_WAIT_ERR;          // 上記以外 → 失敗
 
-                // 停止ボタンが押された → return
-                case WAIT_OBJECT_0 + 1: 
-                    close();
-                    return nullptr;
 
-                // 待ち処理に失敗
-                default:
-                    close();
-                    return AbortInfo::WATCH_WAIT_ERR;
-            }
-
-            // 変更通知が途切れるまでチェックを続ける
+            // 変更通知が途切れるまで、待機し続ける
             while (true) {
 
                 // 監視を開始
-                if (!FindNextChangeNotification(watch)) {
-                    close();
+                if (!watch.reStart())
                     return AbortInfo::WATCH_START_ERR;
-                }
 
                 // 監視終了を待つ
-                DWORD result = WaitForSingleObject(watch, 2000);
-
-                // 結果判定
-                if (result == WAIT_TIMEOUT) break;      // タイムアウト → 次の処理
-                if (result == WAIT_OBJECT_0) continue;  // 変更あり → 再チェック
-
-                // それ以外 → 待ち処理に失敗
-                close();
-                return AbortInfo::WATCH_WAIT_ERR;
+                result = watch.waitChangeOrStopsignal(2000);
+                if (result == CHANGED) continue;        // 再チェックへ
+                if (result == STOPED ) return nullptr;  // 正常終了
+                if (result == TIMEOUT) break;           // 次の処理 へ
+                return AbortInfo::WATCH_WAIT_ERR;       // 上記以外 → 失敗
             }
 
             // ファイル一覧を取得
             PCWSTR errInfo = getFileList();
-            if (errInfo) {
-                close();
-                return errInfo;
-            }
+            if (errInfo) return errInfo;
 
             // バックアップ処理
             fileBackup();
 
             // 次の監視を開始
-            if (!FindNextChangeNotification(watch)) {
-                close();
+            if (!watch.reStart())
                 return AbortInfo::WATCH_START_ERR;
-            }
         }
-        return 0;
     }
 
 
