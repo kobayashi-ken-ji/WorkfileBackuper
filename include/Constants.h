@@ -20,13 +20,7 @@ constexpr int WM_SHOWINIT = WM_APP + 2;     // ÅuãNìÆéûÇ…âÊñ ÇäJÇ≠ÅvÇ…ä÷Ç∑ÇÈèàó
 enum {
     ID_SOURCE_FOLDER = 3000,
     ID_DESTINATION_FOLDER,
-
-    ID_IMMEDIATE,
-    ID_INTERVAL,
-    ID_INTERVAL_MIN,
-    ID_INTERVAL_SEC,
-    ID_FOLDER_CHECK,
-    ID_NOTES,
+    ID_WAIT_TIME,
 
     ID_EXTENSION0,
     ID_EXTENSION1,
@@ -34,8 +28,8 @@ enum {
     ID_EXTENSION3,
     ID_EXTENSION4,
 
-    ID_BOOT_WINDOW,
-    ID_NOTIFY,
+    ID_WINDOW_LAUNCH,
+    ID_NOTIFICATION,
 
     ID_HELP_BUTTON,
     ID_APPLY_BUTTON,

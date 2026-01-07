@@ -186,6 +186,8 @@ public:
 
 class EditBox : public ChildWindowBase {
 public:
+    // 文字列 ←→ 数値 を行うためのバッファサイズ
+    static constexpr int TEXT_LENGTH = 256;
 
     // styleを指定可能 / 指定しなければ定数が使用される
     static constexpr DWORD STYLE = WS_VISIBLE | WS_CHILD | ES_LEFT | WS_BORDER;
@@ -202,11 +204,28 @@ public:
     }
 
     // ボックス内容を取得
-    int get(WCHAR* buffer, int rect) const {
+    int get(WCHAR* buffer, int size) const {
         assert(hSelf != nullptr);
-        return GetWindowTextW(hSelf, buffer, rect);
+        return GetWindowTextW(hSelf, buffer, size);
     }
 
+    // ボックス内容を変更 (数値 → 文字列)
+    bool set(int number) const {
+        assert(hSelf != nullptr);
+
+        WCHAR buffer[TEXT_LENGTH] = { 0 };
+        _itow_s(number, buffer, TEXT_LENGTH, 10);
+        return SetWindowTextW(hSelf, buffer);
+    }
+
+    // ボックス内容を取得 (文字列 → 数値)
+    int get() const {
+        assert(hSelf != nullptr);
+
+        WCHAR buffer[TEXT_LENGTH] = { 0 };
+        GetWindowTextW(hSelf, buffer, TEXT_LENGTH);
+        return _wtoi(buffer);
+    }
 
     //  テキストボックス作成
     void create(const CreateWindowArgs& args) {

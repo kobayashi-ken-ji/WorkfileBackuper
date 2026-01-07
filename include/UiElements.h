@@ -7,7 +7,7 @@
 // メインウィンドウのサイズ
 namespace WindowSize {
     constexpr int W = 460;
-    constexpr int H = 709;
+    constexpr int H = 655;
 }
 
 // ※透明なサイズ調整用境界線（Invisible Borders）が片側8pxずつある
@@ -20,6 +20,7 @@ constexpr int
     HISTORY_H   = 175;
 
 
+// 横一列のフォーマット (ウィンドウ幅の分割指定)
 namespace RowFormats {
 
     // 親ウィンドウ幅、左右のパディング、要素間のマージン、既定の高さ
@@ -37,7 +38,7 @@ namespace RowFormats {
         LONG_SHORT          (INNER, { 70, 30 }),
         DIVIDE3             (INNER, { 33.3, 33.4, 33.3 }),
         DIVIDE4             (INNER, { 25, 25, 25, 25 }),
-        TIME                (INNER, { 5, 67, 9, 5, 9, 5 }),
+        TIME                (INNER, { 70, 25, 5 }),     // [空白][00][秒]
         INDENT_SHORT_LONG   (INNER, { 5, 25, 70 });
 }
 
@@ -59,18 +60,10 @@ public:
 	EditBox destinationFolder;
 
 	// バックアップのタイミング
-	RectDC		timingPanel;
-	TextDC		timingText;
-	RadioButton immediate;
-	RadioButton interval;
-
-	// バックアップ間隔
-	TextDC	 intervalMinText;
-	EditBox  intervalMin;
-	TextDC	 intervalSecText;
-	EditBox  intervalSec;
-	CheckBox folderCheck;
-	Button	 notesButton;
+	RectDC	waitTimePanel;
+	TextDC	waitTimeText;
+    EditBox waitTime;
+    TextDC	waitTimeSecText;
 
     // バックアップするファイルの種類 ( 拡張子 )
     RectDC	extensionsPanel;
@@ -79,8 +72,8 @@ public:
 
     // 起動時に画面を表示、通知する
     RectDC   optionPanel;
-    CheckBox bootWindow;
-    CheckBox notify;
+    CheckBox windowLaunch;
+    CheckBox notification;
 
     // バージョン、開始、停止、終了 ボタン
     Button helpButton;
@@ -94,7 +87,6 @@ public:
     UiElements();
     void createAll(const CreateWindowArgs& args);
     void paintAll(HWND hWnd, HFONT hFont) const;
-    void intervalGroupEnable(bool enable) const;
 };
 
 
@@ -114,23 +106,10 @@ UiElements::UiElements() :
 
 
     // バックアップのタイミング
-    timingPanel (PANEL.get(0, CRLF2, CRLF*4 + MARGIN_H)),
-    timingText  (L"バックアップのタイミング", SHORT_LONG.get(0, MARGIN_H)),
-
-    immediate  (ID_IMMEDIATE, L"上書き直後にバックアップ", TIME.get(1, CRLF), true),
-    interval   (ID_INTERVAL, L"一定間隔で上書きを確認", TIME.get(1, CRLF), false),
-
-    // バックアップ間隔
-    intervalMin     (ID_INTERVAL_MIN, TIME.get(2), TIME_STYLE),
-    intervalMinText (L"分", TIME.get(3)),
-
-    intervalSec     (ID_INTERVAL_SEC, TIME.get(4), TIME_STYLE),
-    intervalSecText (L"秒", TIME.get(5)),
-
-    // 負荷を軽減
-    folderCheck (ID_FOLDER_CHECK, L"負荷を軽減", TIME.get(1, CRLF)),
-    notesButton (ID_NOTES, L"[！] 軽減 注意事項", LONG_SHORT.get(1)),
-
+    waitTimePanel (PANEL.get(0, CRLF2, CRLF*2 + MARGIN_H + 2)),
+    waitTimeText  (L"ファイルが変更されてから、バックアップを開始するまでの時間", SHORT_LONG.get(0, MARGIN_H)),
+    waitTime      (ID_WAIT_TIME, TIME.get(1, CRLF), TIME_STYLE),
+    waitTimeSecText (L"秒", TIME.get(2, 2)),
 
     // 拡張子
     extensionsPanel (PANEL.get(0,  CRLF2, CRLF * 6 + MARGIN_H)),
@@ -142,12 +121,11 @@ UiElements::UiElements() :
         { ID_EXTENSION3, DIVIDE3.get(2, CRLF) },
         { ID_EXTENSION4, DIVIDE3.get(2, CRLF) },
     },
-
     
     // 起動時に画面を表示、通知する
     optionPanel (PANEL.get(0,  CRLF2, CRLF * 2 + MARGIN_H)),
-    bootWindow  (ID_BOOT_WINDOW, L"アプリ起動時にこの画面を開く", FULLWIDTH.get(0, MARGIN_H)),
-    notify      (ID_NOTIFY, L"デスクトップ通知をする", FULLWIDTH.get(0, CRLF)),
+    windowLaunch(ID_WINDOW_LAUNCH, L"アプリ起動時にこの画面を開く", FULLWIDTH.get(0, MARGIN_H)),
+    notification(ID_NOTIFICATION, L"デスクトップ通知をする", FULLWIDTH.get(0, CRLF)),
 
     // ボタン
     helpButton  (ID_HELP_BUTTON , L"バージョン"  , DIVIDE4.get(0, CRLF2)),
@@ -167,18 +145,13 @@ void UiElements::createAll(const CreateWindowArgs &args) {
 
     sourceFolder.create(args);
     destinationFolder.create(args);
-    immediate   .create(args);
-    interval    .create(args);
-    intervalMin .create(args);
-    intervalSec .create(args);
-    folderCheck .create(args);
-    notesButton .create(args);
+    waitTime    .create(args);
 
     for (EditBox& extension : extensions)
         extension.create(args);
 
-    bootWindow  .create(args);
-    notify      .create(args);
+    windowLaunch.create(args);
+    notification.create(args);
     helpButton  .create(args);
     applyButton .create(args);
     stopButton  .create(args);
@@ -204,20 +177,10 @@ void UiElements::paintAll(HWND hWnd, HFONT hFont) const {
     folderPanel     .rectangle(hdc);
     sourceFolderText.textOut(hdc);
     destinationFolderText.textOut(hdc);
-    timingPanel     .rectangle(hdc);
-    timingText      .textOut(hdc);
-    intervalMinText .textOut(hdc);
-    intervalSecText .textOut(hdc);
+    waitTimePanel   .rectangle(hdc);
+    waitTimeText    .textOut(hdc);
+    waitTimeSecText .textOut(hdc);
     extensionsPanel .rectangle(hdc);
     extensionsText  .textOut(hdc);
     optionPanel     .rectangle(hdc);
-}
-
-// ラジオボタン に関連するウィンドウの 有効/無効 を切替え
-void UiElements::intervalGroupEnable(bool enable) const {
-
-    intervalMin.enable(enable);
-    intervalSec.enable(enable);
-    folderCheck.enable(enable);
-    notesButton.enable(enable);
 }

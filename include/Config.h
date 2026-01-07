@@ -14,20 +14,12 @@ public:
     using Extension = WCHAR[EXTENSION_LENGTH];
 
     // メンバ (ファイルに保存される部分)
-    WCHAR sourceFolder[MAX_PATH];           // コピー元
-    WCHAR destinationFolder[MAX_PATH];	    // コピー先
-    DWORD checkInterval;                    // フォルダをチェックする間隔 (秒)
-    WCHAR intervalMin[TIME_INPUT_LENGTH];   // 分  入力受付用
-    WCHAR intervalSec[TIME_INPUT_LENGTH];   // 秒  入力受付用
-
-    bool  immediate;                        // 上書き直後にバックアップ
-    bool  interval;                         // 一定間隔で上書き確認
-
-    bool  bootWindow;                       // 起動時に画面を開くか
-    bool  notify;                           // 通知をするか
-    bool  folderCheck;                      // フォルダの更新日時をチェック（高速化）するか
-    Extension extensions[EXTENSIONS_LENGTH];  // 登録拡張子 [配列]
-    BYTE  extensionCount;                   // 拡張子の有効登録数
+    WCHAR sourceFolder[MAX_PATH];               // コピー元
+    WCHAR destinationFolder[MAX_PATH];	        // コピー先
+    DWORD waitTime;                             // ファイル変更されてから、バックアップ開始までの時間 (秒)
+    bool  windowLaunch;                         // 起動時に画面を開くか
+    bool  notification;                         // 通知をするか
+    Extension extensions[EXTENSIONS_LENGTH];    // 登録拡張子 [配列]
 };
 
 

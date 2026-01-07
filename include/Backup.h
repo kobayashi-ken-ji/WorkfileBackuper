@@ -3,10 +3,10 @@
 #include "stdlib.h"
 #include <stdio.h>
 #include <iostream>
-#include <filesystem>
 #include <Windows.h>
-#include <chrono>
 #include <unordered_map>
+#include <chrono>
+#include <filesystem>
 #include <commctrl.h>
 #pragma comment(lib, "comctl32.lib")
 
@@ -16,7 +16,6 @@
 #include "Config.h"
 #include "ThreadStopFlag.h"
 #include "WatchFolder.h"
-#include <filesystem>
 
 using namespace std;
 using namespace std::filesystem;	// C++17以
@@ -26,7 +25,7 @@ using namespace std::filesystem;	// C++17以
 namespace ReEnterInfo {
     PCWSTR NO_SOURCE      = L"バックアップ元フォルダが有効ではありません。";
     PCWSTR NO_DESTINATION = L"バックアップ先フォルダが有効ではありません。";
-    PCWSTR ZERO_TIME      = L"バックアップする間隔を1秒以上にしてください。";
+    PCWSTR INVALID_TIME   = L"待機時間をマイナス値にすることはできません。";
     PCWSTR NO_EXTENSION   = L"拡張子が入力されていません。";
 }
 
@@ -53,17 +52,16 @@ namespace AbortInfo {
     PCWSTR WATCH_START_ERR = L"[エラー] フォルダ監視の開始に失敗しました。";
 }
 
-//=============================================================================
-// バックアップ処理全体 [クラス]
-//=============================================================================
-/*
-    全体の流れ
-        指定時間 待機
-        フォルダ自体の最終更新時を確認
-        階層内をチェック → 対象ファイルを記録
-        前回の記録と比較 → 新規 or 時間更新 ならバックアップ
-*/
 
+//  バックアップ処理の流れ
+//      (1) フォルダを監視 (変更通知まで待機)
+//      (2) フォルダ内をチェック (指定拡張子のファイルを記録)
+//      (3) ファイルが「新規 or 時間更新」ならファイルをコピー
+//      (4) 1へ戻る
+// 
+//  外部からの停止
+//      stopFlag.stop() を実行すると
+//      1の待機中に処理を抜け、スレッドを停止する
 class Backup {
 private:
 
@@ -106,15 +104,21 @@ public:
         
         // 整合性をチェック
         // メッセージボックスの使用をメインウィンドウに任せるため、情報を返す
-        if (!exists(config.sourceFolder))      return ReEnterInfo::NO_SOURCE;
-        if (!exists(config.destinationFolder)) return ReEnterInfo::NO_DESTINATION;
-        if (config.checkInterval < 1)          return ReEnterInfo::ZERO_TIME;
-        if (config.extensionCount == 0)        return ReEnterInfo::NO_EXTENSION;
+        {
+            using namespace ReEnterInfo;
+            if (!exists(config.sourceFolder))      return NO_SOURCE;
+            if (!exists(config.destinationFolder)) return NO_DESTINATION;
+            if (config.waitTime < 0)               return INVALID_TIME;
+            if (config.extensions[0][0] == L'\0')  return NO_EXTENSION;
+
+            // 拡張子配列の先頭が空 → 一つも登録されていない
+        }
 
         // 設定を複製 (この時点の値で固定)
         this->config = config;
 
         // スレッドを安全に停止させるためのイベントハンドル
+        // スレッド停止後に再度生成されることがあるため、初期化を行う
         stopFlag.init();
 
         // this を lpParameter に渡す → スレッド関数(静的)で受取り
@@ -163,10 +167,8 @@ private:
         // 自クラスのインスタンスを受取る
         Backup* self = (Backup*)lpParamete;   
 
-        // バックアップ方法で分岐
-        PCWSTR abortInfo = (self->config.interval)
-            ? self->intervalFunc()
-            : self->immediateFunc();
+        // バックアップの一連の処理
+        PCWSTR abortInfo = self->main();
 
         // 処理途中で終了した場合、情報を出力
         if (abortInfo) {
@@ -177,46 +179,9 @@ private:
         return 0;
     }
 
-
-    // [廃止予定]
-    // 一定間隔で上書きをチェック (ポーリング)
-    PCWSTR intervalFunc() {
-
-        // 現在の最終更新時を取得
-        checkFolderUpdate();
-
-        // 開始時のファイルの一覧を作成
-        getFileList();
-
-        // タイムアウトするまでの間隔 (ミリ秒)
-        const int interval = config.checkInterval * 1000;
-
-        while (true) {
-
-            // 待機 (タイムアウト or stopFlag.stop() がされるまで)
-            const DWORD result = WaitForSingleObject(stopFlag.handle, interval);
-            switch (result) {
-                case WAIT_OBJECT_0  : return 0;             // 停止ボタンが押された
-                case WAIT_TIMEOUT   : break;                // タイムアウト → 次の処理へ
-                default: return 0;  // 失敗 → メッセージ表示
-            }
-
-            // フォルダの更新時をチェック
-            if (!checkFolderUpdate()) continue;	
-
-            // ファイル一覧を取得
-            PCWSTR errInfo = getFileList();
-            if (errInfo) return errInfo;
-
-            // バックアップ処理
-            fileBackup();
-        }
-        return 0;
-    }
-
     
-    // 上書きされた直後にバックアップ
-    PCWSTR immediateFunc() {
+    // バックアップの一連の処理
+    PCWSTR main() {
 
         // 開始時のファイルの一覧を作成
         getFileList();
@@ -227,13 +192,13 @@ private:
             FILE_NOTIFY_CHANGE_LAST_WRITE;  // 最終書き込み日時の変更
 
         // フォルダ監視 を開始 (スレッド停止フラグを渡す)
-        WatchFolder watch(
-            config.sourceFolder, notifyFilter, stopFlag.handle);
-
-        // 開始に失敗
+        WatchFolder watch(config.sourceFolder, notifyFilter, stopFlag.handle);
         if (watch.isInvalidHandle())
             return AbortInfo::SOURCE_ERR;
         
+        // ファイルが変更されてから、バックアップ開始するまでの時間 (ミリ秒)
+        const int userWaitTime = config.waitTime * 1000;
+
         // 監視ループ
         while (true) {
             using namespace WatchFolderWaitResult;
@@ -241,13 +206,13 @@ private:
 
             // 待機 (フォルダ内変更 or スレッド停止信号 があるまで)
             result = watch.waitChangeOrStopsignal(INFINITE);
-            if (result == STOPED ) return nullptr;      // 正常終了
-            if (result == CHANGED) {}                   // 次の処理へ
-            else return AbortInfo::WATCH_WAIT_ERR;      // 上記以外 → 失敗
+            if (result == STOPED ) return nullptr;          // 正常終了
+            if (result == CHANGED) {}                       // 次の処理へ
+            else return AbortInfo::WATCH_WAIT_ERR;          // 上記以外 → 失敗
 
 
             // ユーザー指定の待機 (スレッド停止信号 or 時間経過 まで)
-            result = WaitForSingleObject(stopFlag.handle, 10*1000);
+            result = WaitForSingleObject(stopFlag.handle, userWaitTime);
             if (result == WAIT_OBJECT_0) return nullptr;    // 正常終了
             if (result == WAIT_TIMEOUT) {}                  // 次の処理 へ
             else return AbortInfo::WATCH_WAIT_ERR;          // 上記以外 → 失敗
@@ -262,10 +227,10 @@ private:
 
                 // 監視終了を待つ
                 result = watch.waitChangeOrStopsignal(2000);
-                if (result == CHANGED) continue;        // 再チェックへ
-                if (result == STOPED ) return nullptr;  // 正常終了
-                if (result == TIMEOUT) break;           // 次の処理 へ
-                return AbortInfo::WATCH_WAIT_ERR;       // 上記以外 → 失敗
+                if (result == CHANGED) continue;            // 再チェックへ
+                if (result == STOPED ) return nullptr;      // 正常終了
+                if (result == TIMEOUT) break;               // 次の処理 へ
+                return AbortInfo::WATCH_WAIT_ERR;           // 上記以外 → 失敗
             }
 
             // ファイル一覧を取得
@@ -301,32 +266,6 @@ private:
 
         // UIに表示
         historyUI.set(text);
-    }
-
-
-    // [廃止予定]
-    // フォルダの更新日時をチェック （処理軽量化）
-    //      フォルダ更新時が変わるのは  直下ファイルが [名前変更、作成、削除] された時
-    //      → 単純上書きの場合は 更新時は変更されないため注意
-    bool checkFolderUpdate() {
-
-        if (!config.folderCheck) return true;
-
-        static file_time_type folderTime;	    // チェックするフォルダの最終更新時
-        error_code err;
-        file_time_type timeNew = last_write_time(config.sourceFolder, err);
-
-        // フォルダー取得エラー を表示
-        if (err) {
-            updateHistory(AbortInfo::SOURCE_ERR, config.sourceFolder);
-            trayIcon.notify(AbortInfo::SOURCE_ERR);
-            return false;
-        }
-
-        // 更新されていれば時間上書き
-        bool isUpdated = (folderTime != timeNew);
-        if (isUpdated) folderTime = timeNew;
-        return isUpdated;
     }
 
 
@@ -376,8 +315,7 @@ private:
 
 
     // ファイルの新旧を比較・バックアップ処理
-    //		戻り値 エラーの真偽
-    bool fileBackup() {
+    void fileBackup() {
         using namespace std::chrono;
 
         // 新mapの要素 を取出す
@@ -434,7 +372,7 @@ private:
             path savePath = config.destinationFolder;
             savePath /= fileName;
             
-            // string → WCHAR 変換
+            // string → WCHAR に変換
             const WCHAR* fileNameW = fileName.c_str();
 
             // 同名ファイルがある (バックアップ済み) → スキップ
@@ -463,6 +401,5 @@ private:
             updateHistory(Info::BACKUP, fileNameW);
             trayIcon.notify(fileNameW, Info::BACKUP);
         }
-        return true;
     }
 };

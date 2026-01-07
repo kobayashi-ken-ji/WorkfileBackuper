@@ -7,7 +7,6 @@
 #pragma comment(lib, "comctl32.lib")
 
 #include "Constants.h"
-//#include "MenuID.h"
 
 // view
 #include "MessageBoxCenter.h"
@@ -21,40 +20,14 @@
 #include "Config.h"
 #include "Backup.h"
 
-//=============================================================================
-// ウインドウプロシージャ
-//=============================================================================
 
-namespace Text {
-    const WCHAR* NOTES_TITLE = L"負荷を軽減";
-    const WCHAR* NOTES =
-        L"【 注意事項 】\r\n"
-        L"    ○ 有効  ：  一時ファイルを作る上書き  (Photoshop など)\r\n"
-        L"    × 無効  ：  単純な上書き  (メモ帳 など)\r\n"
-        L"   バックアップされるか試してから、ご利用ください。\r\n\r\n"
-        L"【 機能 】\r\n"
-        L"    フォルダ日時が更新されている場合のみ、上書き確認を行います。\r\n"
-        L"    フォルダ内をスキャン・比較する回数を減らすことができます。\r\n\r\n"
-        L"【 Windowsの仕様 】\r\n"
-        L"    フォルダの更新日時が変更されるのは\r\n"
-        L"    フォルダ直下での 『作成・削除・名前変更』 をした場合のようです。\r\n"
-        L"    単純な上書きでは変更されません。\r\n";
-}
-
-
+// アプリの既定設定
 constexpr Config defaultConfig = {
     L"D:\\一時作業ファイル",	        // コピー元
     L"E:\\一時作業バックアップ",      // コピー先
-    5,                              // フォルダをチェックする間隔 (秒)
-    L"0",
-    L"5",
-
-    true,
-    false,
-
+    0,                              // ファイル変更から、バックアップまでの時間 (秒)
     true,						    // 起動時に画面を開くか
     true,						    // 通知をするか
-    false,                          // フォルダの更新日時をチェック（高速化）するか
     { L".txt" }	                    // 拡張子リスト
 };
 
@@ -74,7 +47,7 @@ private:
     TrayIcon    trayIcon;
 
 
-    // コンストラクタ (proc()内で実行される)
+    // コンストラクタ (proc内で実行される)
     WindowProc() :
         config {defaultConfig},
         font(),
@@ -85,7 +58,7 @@ private:
 
 public:
 
-    // ウィンドウプロシージャ (WNDCLASS の lpfnWndProc に渡す)
+    // ウィンドウプロシージャ (WNDCLASS構造体のlpfnWndProcメンバ)
     static LRESULT CALLBACK proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
         // 自クラスをインスタンス化
@@ -188,7 +161,7 @@ private:
             const int nCmdShow = (int)lParam;
 
             // 通常表示 or 最小化
-            (config.bootWindow)
+            (config.windowLaunch)
                 ? ShowWindow(hWnd, nCmdShow)
                 : ShowWindow(hWnd, SW_SHOWMINNOACTIVE);
 
@@ -205,18 +178,6 @@ private:
 
         const UINT id = LOWORD(wParam);
         switch (id) {
-
-        // ラジオボタン に関連するウィンドウの 有効/無効 を切替え
-        case ID_IMMEDIATE :
-        case ID_INTERVAL  :
-            ui.intervalGroupEnable(id == ID_INTERVAL);
-            return true;
-
-        // 注意事項 ボタン
-        case ID_NOTES: {
-            MsgBox(Text::NOTES, Text::NOTES_TITLE, MB_OK);
-            return true;
-        }
 
         // バージョン ボタン
         case ID_HELP_BUTTON: {
@@ -299,89 +260,59 @@ private:
         ui.sourceFolder     .get(config.sourceFolder     , MAX_PATH);
         ui.destinationFolder.get(config.destinationFolder, MAX_PATH);
 
-        // タイミング
-        config.immediate   = ui.immediate.get();
-        config.interval    = ui.interval.get();
-        config.folderCheck = ui.folderCheck.get();
-
-        //-----------------------------------------------------
-        // バックアップ間隔
-        //-----------------------------------------------------
-
-        // 文字列格納 → 数値変換
-        const auto timeFunc = [](const EditBox &edit, WCHAR* buffer, int size, int maxTime = 9999999) {
-
-            // ウィンドウ値を取得、数値化
-            int time = 0;
-            edit.get(buffer, size);
-            time = _wtoi(buffer);
-
-            // 上限反映
-            if (time > maxTime) time = maxTime;                 
-
-            // 文字で再格納、表示を更新
-            _itow_s(time, buffer, Config::TIME_INPUT_LENGTH, 10);
-            edit.set(buffer);
-            return time;
-        };
-
-        // 分  秒
-        int minutes = timeFunc(ui.intervalMin, config.intervalMin, Config::TIME_INPUT_LENGTH);
-        int seconds = timeFunc(ui.intervalSec, config.intervalSec, Config::TIME_INPUT_LENGTH, 59);
-
-        // 合計秒を格納
-        config.checkInterval = (minutes * 60) + seconds;
+        // バックアップまでの待機時間 (文字列 → 数値)
+        config.waitTime = ui.waitTime.get();
 
         //-----------------------------------------------------
         // 拡張子 (リストの上から隙間なく埋める)
         //-----------------------------------------------------
 
-        int extensionCount = 0;
-        for (int i = 0; i < Config::EXTENSIONS_LENGTH; i++) {
+        // 拡張子の最大文字数、拡張子型
+        const int length = Config::EXTENSION_LENGTH;
+        using Extension = Config::Extension;
 
-            // ウィンドウから拡張子を取得
-            ui.extensions[i].get( config.extensions[i], Config::EXTENSION_LENGTH);
-            WCHAR* pExtension = config.extensions[i];   // 1つ分
+        // コンフィグを初期化
+        for (Extension& extension : config.extensions)
+            extension[0] = L'\0';
 
-            // 頭文字 取得
-            WCHAR head = pExtension[0];
-            if (head == L'\0') continue;
+        // UI → コンフィグ へコピー
+        int configIndex = 0;
+        for (EditBox& uiExtension : ui.extensions) {
 
-            // 書込先の取得
-            bool sellMove = (extensionCount < i);           // セルを移動するか
-            int writeIdx = (sellMove) ? extensionCount : i; // 書込先インデックス
-            WCHAR
-                * read  = config.extensions[i],             // 読込先
-                * write = config.extensions[writeIdx];      // 書込先
+            // UIから拡張子を取得
+            Extension tmp;
+            uiExtension.get(tmp, length);
 
-            // 先頭に . がない場合は 付与
-            WCHAR tmp[Config::EXTENSION_LENGTH] = L".";              // 新規 ドットのみ
-            if (head != L'.') {
-                wcscat_s(tmp, Config::EXTENSION_LENGTH, pExtension);   // ↑に文字を追加
-                read = tmp;                                     // 読込先にする
+            // 未設定 → スキップ
+            const WCHAR uiHead = tmp[0];
+            if (uiHead == L'\0') continue;
+
+            // コンフィグを取得 (書込先)
+            Extension& configExtension = config.extensions[configIndex];
+            configIndex++;
+
+            // 先頭に.を書込む
+            if (uiHead != L'.') {
+                configExtension[0] = L'.';
+                configExtension[1] = L'\0';
             }
 
-            // 文字列を戻す
-            if(read != write)
-                wcscpy_s(write, Config::EXTENSION_LENGTH, read);
-
-            if (sellMove) pExtension[0] = L'\0';     // 空いた部分の処理
-            extensionCount++;                           // 登録数カウントアップ
+            // その後ろに文字列を追加
+            wcscat_s(configExtension, length, tmp);
         }
-        config.extensionCount = extensionCount;         // 拡張子の有効登録数
 
-        // 表示更新
+        // 表示を更新 (コンフィグ → UI へコピー)
         for (int i = 0; i < Config::EXTENSIONS_LENGTH; i++)
             ui.extensions[i].set( config.extensions[i] );
 
         //-----------------------------------------------------
 
         // チェックボックス
-        config.bootWindow = ui.bootWindow.get();
-        config.notify     = ui.notify.get();
+        config.windowLaunch   = ui.windowLaunch.get();
+        config.notification = ui.notification.get();
 
         // トレイアイコンに設定を反映
-        trayIcon.enable = config.notify;
+        trayIcon.enable = config.notification;
     }
 
 
@@ -408,25 +339,18 @@ private:
         // set()にはハンドルが必要なため、create() 後に実行
         ui.sourceFolder     .set(config.sourceFolder);
         ui.destinationFolder.set(config.destinationFolder);
-        ui.immediate        .set(config.immediate);
-        ui.interval         .set(config.interval);
-        ui.intervalMin      .set(config.intervalMin);
-        ui.intervalSec      .set(config.intervalSec);
-        ui.folderCheck      .set(config.folderCheck);
-        ui.bootWindow       .set(config.bootWindow);
-        ui.notify           .set(config.notify);
+        ui.waitTime         .set(config.waitTime);
+        ui.windowLaunch       .set(config.windowLaunch);
+        ui.notification     .set(config.notification);
         ui.history          .set(initialHistory);
 
         for (int64_t i = 0; i < Config::EXTENSIONS_LENGTH; i++)
             ui.extensions[i].set(config.extensions[i]);
 
-        // ラジオボタン関連の 有効/無効 切り替え
-        ui.intervalGroupEnable(config.interval == true);
-
         // アイコンをトレイに追加
         trayIcon.setHandle(hwnd, hIcon);
         trayIcon.add();
-        trayIcon.enable = config.notify;
+        trayIcon.enable = config.notification;
   
         // 設定 読込済み → バックアップ開始
         if (configLoadFlag) applyAndSart();
