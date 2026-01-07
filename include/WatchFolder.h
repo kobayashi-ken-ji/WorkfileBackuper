@@ -11,6 +11,7 @@ namespace WatchFolderWaitResult {
         ABANDONED = WAIT_ABANDONED;  // 解放されなかったミューテックスオブジェクト
 }
 
+
 // フォルダ監視処理をまとめたクラス
 // ハンドルのライフサイクルを管理
 class WatchFolder {
@@ -25,42 +26,20 @@ public:
     * @param notifyFilter   通知条件 (FILE_NOTIFY_CHANGE~)
     * @param hStopSignal    停止用イベント (シグナル化することで待機が終了)
     */
-    WatchFolder(LPCWSTR pathName, DWORD notifyFilter, HANDLE hStopSignal) :
-        handle(FindFirstChangeNotificationW(
-            pathName,       // フォルダ
-            false,          // サブディレクトリを監視するか
-            notifyFilter    // 通知条件
-        )),
-        handles{ handle, hStopSignal }
-    {}
+    WatchFolder(LPCWSTR pathName, DWORD notifyFilter, HANDLE hStopSignal);
 
     // デストラクタ / ハンドルを解放
-    ~WatchFolder() {
-        FindCloseChangeNotification(handle);
-    }
+    ~WatchFolder();
 
     // ハンドルが無効か否か (コンストラクタ直後に使用)
-    bool isInvalidHandle() const {
-        return (handle == INVALID_HANDLE_VALUE);
-    }
+    bool isInvalidHandle() const;
 
     // フォルダ監視の終了 を待機
-    DWORD waitChange(DWORD milliSeconds = INFINITE) const {
-        return WaitForSingleObject(handle, milliSeconds);
-    }
+    DWORD waitChange(DWORD milliSeconds = INFINITE) const;
 
     // フォルダ監視の終了 or 停止信号 を待機
-    DWORD waitChangeOrStopsignal(DWORD milliSeconds = INFINITE) const {
-        return WaitForMultipleObjects(
-            2,              // ハンドル数
-            handles,        // ハンドルの配列
-            false,          // 全てのハンドルが終了するまで待つか
-            milliSeconds    // タイムアウト間隔 (ミリ秒)
-        );
-    }
+    DWORD waitChangeOrStopsignal(DWORD milliSeconds = INFINITE) const;
 
     // フォルダ監視を再開
-    bool reStart() const {
-        return FindNextChangeNotification(handle);
-    }
+    bool reStart() const;
 };

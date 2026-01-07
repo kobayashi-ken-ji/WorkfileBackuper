@@ -27,7 +27,10 @@ int WINAPI WinMain(
 ){
     // 多重起動防止
     ApplicationMutex mutex(AppInfo::NAME);
-    if (mutex.isAlreadyStarted(true)) return 0;
+    if (mutex.isAlreadyStarted()) {
+        MessageBoxW(nullptr, L"既に起動しています。", AppInfo::NAME, MB_OK);
+        return 0;
+    }
 
     //-----------------------------------------------------
     // ウィンドウクラスを登録

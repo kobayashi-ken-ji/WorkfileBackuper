@@ -1,14 +1,12 @@
 #pragma once
 
-//#include "../Resource.h"
-
 // Windows ヘッダー ファイル
-#include <windows.h>
-// C ランタイム ヘッダー ファイル
-#include <stdlib.h>
-#include <malloc.h>
-#include <memory.h>
+//#include <windows.h>
 
+// C ランタイム ヘッダー ファイル
+//#include <stdlib.h>
+//#include <malloc.h>
+//#include <memory.h>
 
 // targetver.h
 // // SDKDDKVer.h をインクルードすると、利用できる最も高いレベルの Windows プラットフォームが定義されます。

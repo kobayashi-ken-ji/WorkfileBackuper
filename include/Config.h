@@ -26,7 +26,6 @@ public:
 // コンフィグ構造体 + ファイル保存機能
 class Config : public ConfigStruct {
 public:
-
     // 保存先
     static constexpr char FILE_PATH[] = "WorkfileBackuper_config.dat";
 
@@ -37,7 +36,6 @@ public:
     bool saveFile();
 
 private:
-
     // 設定ファイルを読み書き
     bool saveLoadFile(bool saveMode);
 };

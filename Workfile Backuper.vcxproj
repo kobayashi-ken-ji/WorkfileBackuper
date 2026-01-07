@@ -154,8 +154,20 @@
     <Image Include="Workfile Backuper.ico" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ApplicationMutex.cpp" />
+    <ClCompile Include="src\Backup.cpp" />
+    <ClCompile Include="src\ChildWindow.cpp" />
     <ClCompile Include="src\Config.cpp" />
+    <ClCompile Include="src\DeviceContext.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\MainFont.cpp" />
+    <ClCompile Include="src\MessageBoxCenter.cpp" />
+    <ClCompile Include="src\Rect.cpp" />
+    <ClCompile Include="src\ThreadStopFlag.cpp" />
+    <ClCompile Include="src\TrayIcon.cpp" />
+    <ClCompile Include="src\UiElements.cpp" />
+    <ClCompile Include="src\WatchFolder.cpp" />
+    <ClCompile Include="src\WindowProc.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

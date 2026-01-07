@@ -9,46 +9,26 @@ private:
 
     PAINTSTRUCT ps;
     const HWND hwnd;
-
 public:
     const HDC hdc;
 
-    // コンストラクタ
-    DeviceContext(HWND hwnd, HFONT hFont) :
-        hwnd(hwnd),
-        hdc(BeginPaint(hwnd, &ps))  // 描画開始
-    {
-        // 背景モード、フォントを指定
-        SetBkMode(hdc, TRANSPARENT);
-        SelectObject(hdc, hFont);
-    }
+    // コンストラクタ / 描画開始
+    DeviceContext(HWND hwnd, HFONT hFont);
 
-    // デストラクタ (リソースを解放)
-    ~DeviceContext() {
-        EndPaint(hwnd, &ps);
-    }
+    // デストラクタ / リソースを解放
+    ~DeviceContext();
 
 
     // 塗りつぶしの色設定 (透明)
-    void setBrush() {
-        SelectObject(hdc, GetStockObject(NULL_BRUSH));
-    }
+    void setBrush();
 
     // 塗りつぶしの色設定
-    void setBrush(COLORREF color) {
-        SelectObject(hdc, GetStockObject(DC_BRUSH));
-        SetDCBrushColor(hdc, color);
-    }
+    void setBrush(COLORREF color);
 
 
     // 輪郭線の色設定 (透明)
-    void setPen() {
-        SelectObject(hdc, GetStockObject(NULL_PEN));
-    }
+    void setPen();
 
     // 輪郭線の色設定
-    void setPen(COLORREF color) {
-        SelectObject(hdc, GetStockObject(DC_PEN));
-        SetDCPenColor(hdc, color);
-    }
+    void setPen(COLORREF color);
 };

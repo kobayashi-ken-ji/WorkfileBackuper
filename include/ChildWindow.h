@@ -1,9 +1,8 @@
 #pragma once
 #include <Windows.h>
+#include <commctrl.h>
 #include "MainFont.h"
 #include "Rect.h"
-#include <cassert>
-#include <cstdint>
 
 //=============================================================================
 // デバイスコンテキストを使用
@@ -13,16 +12,13 @@
 class TextDC {
 private:
     const WCHAR* text;  // 描画する文字列
-    const Rect rect;
+    const Rect rect;    // 座標、サイズ
 
 public:
-    TextDC(const WCHAR* text, Rect rect) : text(text), rect(rect) {}
+    TextDC(const WCHAR* text, Rect rect);
 
     // テキストを描画
-    bool textOut(HDC hdc) const {
-        const int length = lstrlenW(text);
-        return TextOutW(hdc, rect.x, rect.y, text, length);
-    }
+    bool textOut(HDC hdc) const;
 };
 
 
@@ -32,15 +28,10 @@ private:
     const Rect rect;
 
 public:
-    RectDC(Rect rect) : rect(rect) {}
+    RectDC(Rect rect);
 
     // 矩形で塗りつぶし
-    bool rectangle(HDC hdc) const {
-
-        const int right = rect.x + rect.w;
-        const int bottom = rect.y + rect.h;
-        return Rectangle(hdc, rect.x, rect.y, right, bottom);
-    }
+    bool rectangle(HDC hdc) const;
 };
 
 //=============================================================================
@@ -69,45 +60,18 @@ protected:
     HWND hSelf;         // createBase()の実行前は nullptr
     
 public:
-
     // コンストラクタ
-    ChildWindowBase(int64_t id, const WCHAR* text, Rect wndSize)
-        : id(id), text(text), rect(wndSize), hSelf(nullptr) {}
+    ChildWindowBase(int64_t id, const WCHAR* text, Rect wndSize);
 
     // デストラクタ (ハンドルを解放)
-    virtual ~ChildWindowBase() {
-        DestroyWindow(hSelf);
-    }
+    virtual ~ChildWindowBase();
 
     // 有効/無効 を切替え
-    bool enable(bool enable) const {
-        assert(hSelf != nullptr);
-        return EnableWindow(hSelf, enable);
-    }
+    bool enable(bool enable) const;
 
 protected:
-
     // ウィンドウ作成 (子クラスの create() から呼び出される)
-    void createBase(const CreateWindowArgs &args, LPCWSTR className, DWORD style) {
-
-        // 同じウィンドウの重複を避ける
-        assert(hSelf == nullptr);
-
-        hSelf = CreateWindowW(
-            className,          // クラス名 (WC_BUTTON など)
-            text,               // ウィンドウ名
-            style,              // ウィンドウスタイル (WS_CHILD など)
-            rect.x, rect.y,     // 横, 縦の位置
-            rect.w, rect.h,     // ウィンドウの幅, 高さ  ※ ドロップダウンのサイズを含む
-            args.hParent,       // 親ウィンドウ
-            (HMENU)id,          // 子ウィンドウ識別子 (プロシージャでキャッチするID)
-            args.hInstance,     // インスタンス
-            NULL                // ウィンドウ作成データ
-        );
-
-        // フォントを設定
-        SendMessageW(hSelf, WM_SETFONT, (WPARAM)args.hFont, FALSE);
-    }
+    void createBase(const CreateWindowArgs& args, LPCWSTR className, DWORD style);
 };
 
 //=============================================================================
@@ -116,15 +80,11 @@ protected:
 
 class Button : public ChildWindowBase {
 public:
-
     // 親のコンストラクタを使用
     using ChildWindowBase::ChildWindowBase;
 
     //  ボタン作成
-    void create(CreateWindowArgs args) {
-        const DWORD style = WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON;
-        createBase(args, WC_BUTTON, style);
-    }
+    void create(CreateWindowArgs args);
 };
 
 //=============================================================================
@@ -133,28 +93,17 @@ public:
 
 class CheckBox : public ChildWindowBase {
 public:
-
     // 親のコンストラクタを使用
     using ChildWindowBase::ChildWindowBase;
 
     // チェックに値を設定
-    void set(bool value) const {
-        assert(hSelf != nullptr);
-        const WPARAM wParam = value ? BST_CHECKED : BST_UNCHECKED;
-        SendMessageW(hSelf, BM_SETCHECK, wParam, 0);     // 戻り値は常に0
-    }
+    void set(bool value) const;
 
     // チェックの値を取得
-    bool get() const {
-        assert(hSelf != nullptr);
-        return SendMessageW(hSelf, BM_GETCHECK, 0, 0);
-    }
+    bool get() const;
 
     //  チェックボックス作成
-    void create(const CreateWindowArgs& args) {
-        const DWORD dwStyle = WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX;
-        createBase(args, WC_BUTTON, dwStyle);
-    }
+    void create(const CreateWindowArgs& args);
 };
 
 //=============================================================================
@@ -164,24 +113,17 @@ public:
 // チェックボックス + グループ要素
 class RadioButton : public CheckBox {
 public:
-
     // グループの1つ目かどうか（排他ボタン用）
     const bool isNewGroup;
 
-    RadioButton(int64_t id, const WCHAR* text, Rect rect, bool isNewGroup)
-        : CheckBox(id, text, rect), isNewGroup(isNewGroup) {}
-
+    RadioButton(int64_t id, const WCHAR* text, Rect rect, bool isNewGroup);
 
     // ラジオボタン作成
-    void create(const CreateWindowArgs& args) {
-        DWORD style = WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON;   
-        if (isNewGroup) style |= WS_GROUP;    
-        createBase(args, WC_BUTTON, style);
-    }
+    void create(const CreateWindowArgs& args);
 };
 
 //=============================================================================
-// テキストボックス
+// 編集ボックス
 //=============================================================================
 
 class EditBox : public ChildWindowBase {
@@ -193,42 +135,21 @@ public:
     static constexpr DWORD STYLE = WS_VISIBLE | WS_CHILD | ES_LEFT | WS_BORDER;
     const DWORD style;
     
-    EditBox(int64_t id, Rect rect, DWORD style = STYLE)
-        : ChildWindowBase(id, nullptr, rect), style(style) {}
+    EditBox(int64_t id, Rect rect, DWORD style = STYLE);
 
 
     // ボックス内容を変更
-    bool set(const WCHAR* text) const {
-        assert(hSelf != nullptr);
-        return SetWindowTextW(hSelf, text);
-    }
+    bool set(const WCHAR* text) const;
 
     // ボックス内容を取得
-    int get(WCHAR* buffer, int size) const {
-        assert(hSelf != nullptr);
-        return GetWindowTextW(hSelf, buffer, size);
-    }
+    int get(WCHAR* buffer, int size) const;
 
-    // ボックス内容を変更 (数値 → 文字列)
-    bool set(int number) const {
-        assert(hSelf != nullptr);
+    // ボックス内容を変更 (数値入力)
+    bool set(int number) const;
 
-        WCHAR buffer[TEXT_LENGTH] = { 0 };
-        _itow_s(number, buffer, TEXT_LENGTH, 10);
-        return SetWindowTextW(hSelf, buffer);
-    }
+    // ボックス内容を取得 (数値出力)
+    int get() const;
 
-    // ボックス内容を取得 (文字列 → 数値)
-    int get() const {
-        assert(hSelf != nullptr);
-
-        WCHAR buffer[TEXT_LENGTH] = { 0 };
-        GetWindowTextW(hSelf, buffer, TEXT_LENGTH);
-        return _wtoi(buffer);
-    }
-
-    //  テキストボックス作成
-    void create(const CreateWindowArgs& args) {
-        createBase(args, WC_EDIT, style);
-    }
+    // 編集ボックス作成
+    void create(const CreateWindowArgs& args);
 };

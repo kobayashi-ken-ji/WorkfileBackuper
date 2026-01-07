@@ -1,7 +1,5 @@
 #pragma once
-#include <handleapi.h>
-#include <synchapi.h>
-#include <cassert>
+#include <windows.h>
 
 
 // スレッド停止用のフラグ
@@ -17,17 +15,15 @@ public:
 
     // イベントを生成
     // (セキュリティ属性なし、手動リセット, 初期状態は非シグナル、イベント名なし)
-    ThreadStopFlag() : handle{ CreateEventW(NULL, TRUE, FALSE, NULL) } {
-        assert(handle != NULL);
-    }
+    ThreadStopFlag();
 
     // デストラクタ (イベントを解放)
-    ~ThreadStopFlag() { CloseHandle(handle); }
+    ~ThreadStopFlag();
 
     // 停止フラグを立てる (シグナル化)
     // WaitForSingleObject側は待機が終了する
-    void stop() const { SetEvent(handle); }
+    void stop() const;
 
     // 停止フラグを初期化 (非シグナル化)
-    void init() const { ResetEvent(handle); }
+    void init() const;
 };
