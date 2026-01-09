@@ -6,7 +6,7 @@
 // ハンドルのライフサイクルを管理
 class ApplicationMutex {
 private:
-    const WCHAR* name;  // オブジェクト名
+    const WCHAR* name;  // アプリケーション名
     HANDLE handle;      // ハンドル
 
 public:

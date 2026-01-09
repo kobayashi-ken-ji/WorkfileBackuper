@@ -4,9 +4,9 @@
 // 
 //		指定フォルダを監視し、
 //		変更があったファイルをバックアップする
+//      (サブフォルダ内は対象外)
 //=============================================================================
 
-#include <Windows.h>
 #include "../include/main.h"
 #include "../include/Constants.h"
 #include "../include/ApplicationMutex.h"
@@ -71,7 +71,7 @@ int WINAPI WinMain(
 
     // ウィンドウを作成
     const DWORD style = WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX;   // 枠可変、最大化 を解除
-    const HWND hwnd = CreateWindowW(
+    const HWND hWnd = CreateWindowW(
         AppInfo::NAME,          // ウィンドウクラス名
         AppInfo::NAME_JP,       // ウィンドウの名称
         style,                  // ウィンドウスタイル
@@ -84,11 +84,11 @@ int WINAPI WinMain(
         NULL                    // ウィンドウ作成データ
     );
 
-    if (!hwnd) return 0;
+    if (!hWnd) return 0;
 
     // ウィンドウを表示 (メッセージを送信し、プロシージャ内で処理)
-    SendMessageW(hwnd, WM_SHOWINIT, NULL, nCmdShow);
-    UpdateWindow(hwnd);
+    SendMessageW(hWnd, WM_SHOWINIT, NULL, nCmdShow);
+    UpdateWindow(hWnd);
 
     //-----------------------------------------------------
 
@@ -100,6 +100,6 @@ int WINAPI WinMain(
     }
 
     // クリーンアップ
-    DestroyWindow(hwnd);
+    DestroyWindow(hWnd);
     return (int)msg.wParam;
 }

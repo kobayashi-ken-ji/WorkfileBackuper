@@ -151,9 +151,6 @@
     <ResourceCompile Include="MENUID.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="Workfile Backuper.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="src\ApplicationMutex.cpp" />
     <ClCompile Include="src\Backup.cpp" />
     <ClCompile Include="src\ChildWindow.cpp" />
@@ -168,6 +165,9 @@
     <ClCompile Include="src\UiElements.cpp" />
     <ClCompile Include="src\WatchFolder.cpp" />
     <ClCompile Include="src\WindowProc.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Workfile Backuper.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

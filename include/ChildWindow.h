@@ -35,9 +35,7 @@ public:
 };
 
 //=============================================================================
-// 子ウインドウ クラス
-//      View として再構築
-//      データとの連携はController側へ移植
+// 子ウインドウ
 //=============================================================================
 
 // 子ウィンドウ生成時の引数
@@ -71,6 +69,9 @@ public:
 
 protected:
     // ウィンドウ作成 (子クラスの create() から呼び出される)
+    // @param args      「子クラス共通の引数」をまとめた構造体
+    // @param className WC_BUTTON など
+    // @param style     WS_CHILD | WS_VISIBLE など
     void createBase(const CreateWindowArgs& args, LPCWSTR className, DWORD style);
 };
 
@@ -127,16 +128,16 @@ public:
 //=============================================================================
 
 class EditBox : public ChildWindowBase {
-public:
+private:
     // 文字列 ←→ 数値 を行うためのバッファサイズ
     static constexpr int TEXT_LENGTH = 256;
 
-    // styleを指定可能 / 指定しなければ定数が使用される
+    // styleのデフォルト値
     static constexpr DWORD STYLE = WS_VISIBLE | WS_CHILD | ES_LEFT | WS_BORDER;
     const DWORD style;
-    
-    EditBox(int64_t id, Rect rect, DWORD style = STYLE);
 
+public:
+    EditBox(int64_t id, Rect rect, DWORD style = STYLE);
 
     // ボックス内容を変更
     bool set(const WCHAR* text) const;

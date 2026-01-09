@@ -16,7 +16,7 @@ struct Rect {
 class RowFormat {
 public:
     //-------------------------------------------
-    // 型定義
+    // 型定義 コンストラクタの引数用
     //-------------------------------------------
 
     // 1行内の要素数 (最大値)
@@ -27,26 +27,25 @@ public:
     // 例: {25, 25, 25, 25} → 等分幅の要素が4つ
     using Ratios = const double[ROW_LENGTH];
     
-    // コンストラクタ引数をまとめた型
+    // 共通化しやすい要素をまとめた型
     struct Param {
         const int parentW;      // 親ウィンドウの幅 (Invisible Borders を除く)
         const int paddingW;     // 左右の余白
-        const int autoMarginW;  // 要素同士の隙間幅 (0も可)
-        const int defaultH;     // 既定高さ  ※get()で h を指定しない場合に使用
+        const int marginW;      // 要素同士の隙間幅
+        const int defaultH;     // 既定高さ
     };
-
-    // {X座標、横幅} の配列型
-    struct Horizontal { int x, w; };
-    using Horizontals = std::array<Horizontal, ROW_LENGTH>;
 
     //-------------------------------------------
 private:
-    const Horizontals horizontals;
+
+    // {X座標、横幅} の配列
+    struct Horizontal { int x, w; };
+    Horizontal horizontals[ROW_LENGTH];
     const int defaultH;
 
 public:
     // コンストラクタ
-    RowFormat(const Param& param, Ratios& format);
+    RowFormat(const Param& param, Ratios& ratios);
 
 
     // Rectを生成
@@ -54,8 +53,4 @@ public:
     // @param yAdd  改行高さ (前回生成時のy + yAdd = 今回のy)
     // @param h     高さ (省略時は規定高さを使用)
     Rect get(int index, int yAdd = 0, int h = 0) const;
-
-private:
-    // {x, w} の配列を生成
-    Horizontals getHorizontals(const Param& param, Ratios& ratios) const;
 };

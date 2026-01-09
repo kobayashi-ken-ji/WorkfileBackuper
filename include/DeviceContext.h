@@ -8,12 +8,12 @@ class DeviceContext {
 private:
 
     PAINTSTRUCT ps;
-    const HWND hwnd;
+    const HWND hWnd;
 public:
     const HDC hdc;
 
     // コンストラクタ / 描画開始
-    DeviceContext(HWND hwnd, HFONT hFont);
+    DeviceContext(HWND hWnd, HFONT hFont);
 
     // デストラクタ / リソースを解放
     ~DeviceContext();

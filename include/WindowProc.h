@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include "Constants.h"
 
+// View
 #include "MessageBoxCenter.h"
 #include "DeviceContext.h"
 #include "ChildWindow.h"
@@ -9,6 +10,7 @@
 #include "TrayIcon.h"
 #include "MainFont.h"
 
+// Model
 #include "Config.h"
 #include "Backup.h"
 
@@ -17,7 +19,6 @@
 // プロシージャ内部でインスタンス化される
 class WindowProc {
 private:
-
     // Model
     Config      config;
     Backup      backup;
@@ -32,11 +33,10 @@ private:
 
 public:
     // ウィンドウプロシージャ (WNDCLASS構造体のlpfnWndProcメンバ)
-    static LRESULT CALLBACK proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
-
-    // タスクアイコン、タスクバー 関連の処理
+    // タスクアイコン、タスクバー、最小化 関連の処理
     // @returns 処理が行われたか否か
     bool show(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) const;
 
@@ -54,5 +54,5 @@ private:
     void getUiValues();
 
     // 子ウインドウ作成
-    void wm_create(HWND hwnd, LPARAM lParam);
+    void wmCreate(HWND hWnd, LPARAM lParam);
 };

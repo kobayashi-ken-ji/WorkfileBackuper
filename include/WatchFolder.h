@@ -4,11 +4,11 @@
 // WatchFolder::waitChangeOrStopsignal() の戻り値
 namespace WatchFolderWaitResult {
     constexpr DWORD
-        CHANGED   = WAIT_OBJECT_0 + 0,
-        STOPED    = WAIT_OBJECT_0 + 1,
-        TIMEOUT   = WAIT_TIMEOUT,
-        FAILED    = WAIT_FAILED,
-        ABANDONED = WAIT_ABANDONED;  // 解放されなかったミューテックスオブジェクト
+        CHANGED   = WAIT_OBJECT_0 + 0,  // フォルダ内に変更があった
+        STOPED    = WAIT_OBJECT_0 + 1,  // 停止フラグが立った
+        TIMEOUT   = WAIT_TIMEOUT,       // なにも起きず、タイムアウト
+        FAILED    = WAIT_FAILED,        // 待ち処理に失敗
+        ABANDONED = WAIT_ABANDONED;     // 放棄されたミューテックスオブジェクト
 }
 
 
@@ -22,9 +22,9 @@ private:
 public:
     /**
     * コンストラクタ / フォルダ監視を開始
-    * @param pathName       監視するフォルダ
+    * @param pathName       監視するフォルダのパス
     * @param notifyFilter   通知条件 (FILE_NOTIFY_CHANGE~)
-    * @param hStopSignal    停止用イベント (シグナル化することで待機が終了)
+    * @param hStopSignal    停止用フラグ (シグナル化することで待機が終了)
     */
     WatchFolder(LPCWSTR pathName, DWORD notifyFilter, HANDLE hStopSignal);
 
@@ -34,10 +34,9 @@ public:
     // ハンドルが無効か否か (コンストラクタ直後に使用)
     bool isInvalidHandle() const;
 
-    // フォルダ監視の終了 を待機
-    DWORD waitChange(DWORD milliSeconds = INFINITE) const;
-
-    // フォルダ監視の終了 or 停止信号 を待機
+    // フォルダ監視の終了 or 停止フラグのシグナル化 を待機
+    // @param milliSeconds タイムアウトまでのミリ秒
+    // @returns WatchFolderWaitResultのいずれか
     DWORD waitChangeOrStopsignal(DWORD milliSeconds = INFINITE) const;
 
     // フォルダ監視を再開

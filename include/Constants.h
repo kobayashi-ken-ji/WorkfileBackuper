@@ -9,8 +9,8 @@
 namespace AppInfo {
     constexpr PCWSTR NAME      = L"Workfile Backuper";
     constexpr PCWSTR NAME_JP   = L"作業ファイル自動バックアップ";
-    constexpr PCWSTR VERSION   = L"0.01";
-    constexpr PCWSTR COPYRIGHT = L"Copyright (C) 2023 Kobayashi Kenji";
+    constexpr PCWSTR VERSION   = L"1.00";
+    constexpr PCWSTR COPYRIGHT = L"Copyright (C) 2026 Kobayashi Kenji";
 }
 
 // プロシージャ用

@@ -10,8 +10,8 @@
 // アプリのデフォルト設定
 // コンフィグファイルが読み込まれなかった場合に使用される
 constexpr Config defaultConfig = {
-    L"D:\\一時作業ファイル",	        // コピー元
-    L"E:\\一時作業バックアップ",      // コピー先
+    L"D:\\作業フォルダ",	            // コピー元
+    L"E:\\バックアップフォルダ",      // コピー先
     0,                              // ファイル変更から、バックアップまでの時間 (秒)
     true,						    // 起動時に画面を開くか
     true,						    // 通知をするか
@@ -30,33 +30,33 @@ WindowProc::WindowProc() :
 
 
 // ウィンドウプロシージャ (WNDCLASS構造体のlpfnWndProcメンバ)
-LRESULT CALLBACK WindowProc::proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK WindowProc::proc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 
     // 自クラスをインスタンス化
     static WindowProc self;
 
     switch (uMsg) {
 
-    // タスクアイコン、タスクバー の処理
+    // タスクアイコン、タスクバー、最小化 の処理
     case WM_SIZE    :
     case WM_TASKTRAY:
     case WM_SHOWINIT:
-        if (self.show(hwnd, uMsg, wParam, lParam)) return 0;
+        if (self.show(hWnd, uMsg, wParam, lParam)) return 0;
         break;
 
     // ボタンが押された時
     case WM_COMMAND:
-        if (self.wmCommand(hwnd, wParam)) return 0;
+        if (self.wmCommand(hWnd, wParam)) return 0;
         break;
         
     // 描画時
     case WM_PAINT:
-        self.ui.paintAll(hwnd, self.font.handle);
+        self.ui.paintAll(hWnd, self.font.handle);
         return 0;
 
     // 作成時
     case WM_CREATE:
-        self.wm_create(hwnd, lParam);
+        self.wmCreate(hWnd, lParam);
         return 0;
 
     // アプリの終了
@@ -69,14 +69,14 @@ LRESULT CALLBACK WindowProc::proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
         );
 
         // WM_DESTROY を発行
-        if(result == IDYES) DestroyWindow(hwnd);
+        if(result == IDYES) DestroyWindow(hWnd);
         return 0;
     }
 
     // ウィンドウ破棄
     case WM_DESTROY:{
 
-        // バックアップ停止、トレイアイコン削除、WM_QUITをポスト
+        // バックアップ停止、トレイアイコン削除、WM_QUITを送信
         self.backup.closeThread();
         self.trayIcon.deleteIcon();
         PostQuitMessage(0);
@@ -84,11 +84,11 @@ LRESULT CALLBACK WindowProc::proc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
     }
     } // switch
 
-    return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+    return DefWindowProcW(hWnd, uMsg, wParam, lParam);
 }
 
 
-// タスクアイコン、タスクバー 関連の処理
+// タスクアイコン、タスクバー、最小化 関連の処理
 // @returns 処理が行われたか否か
 bool WindowProc::show(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) const {
     switch (uMsg) {
@@ -245,7 +245,7 @@ void WindowProc::getUiValues() {
     for (Extension& extension : config.extensions)
         extension[0] = L'\0';
 
-    // UI → コンフィグ へコピー
+    // UI値を取得 & 整理 (UI → コンフィグ)
     int configIndex = 0;
     for (EditBox& uiExtension : ui.extensions) {
 
@@ -253,7 +253,7 @@ void WindowProc::getUiValues() {
         Extension tmp;
         uiExtension.get(tmp, length);
 
-        // 未設定 → スキップ
+        // 拡張子が未設定 → スキップ
         const WCHAR uiHead = tmp[0];
         if (uiHead == L'\0') continue;
 
@@ -271,7 +271,7 @@ void WindowProc::getUiValues() {
         wcscat_s(configExtension, length, tmp);
     }
 
-    // 表示を更新 (コンフィグ → UI へコピー)
+    // UIに整理した値を反映 (コンフィグ → UI)
     for (int i = 0; i < Config::EXTENSIONS_LENGTH; i++)
         ui.extensions[i].set( config.extensions[i] );
 
@@ -287,20 +287,23 @@ void WindowProc::getUiValues() {
 
 
 // 子ウインドウ作成
-void WindowProc::wm_create(HWND hwnd, LPARAM lParam) {
+void WindowProc::wmCreate(HWND hWnd, LPARAM lParam) {
 
     const HINSTANCE hInstance = ((LPCREATESTRUCT)lParam)->hInstance;
     const HICON hIcon = LoadIconW(hInstance, MAKEINTRESOURCE(MENU_ICON));
 
     // メッセージボックス 初期化
-    MessageBoxCenter::hParent = hwnd;
+    MessageBoxCenter::hParent = hWnd;
 
     // コンフィグファイルを読込
     const bool configLoadFlag = config.loadFile();
 
     // 子ウィンドウを全て描画
-    const CreateWindowArgs args = { hwnd, hInstance, font.handle };
+    const CreateWindowArgs args = { hWnd, hInstance, font.handle };
     ui.createAll(args);
+
+    // バックアップ開始前なので、停止ボタンを無効化
+    ui.stopButton.enable(false);
 
     const WCHAR* initialHistory = 
         L"各項目に入力し、[適用・開始] ボタンを押してください。";
@@ -318,11 +321,10 @@ void WindowProc::wm_create(HWND hwnd, LPARAM lParam) {
         ui.extensions[i].set(config.extensions[i]);
 
     // アイコンをトレイに追加
-    trayIcon.setHandle(hwnd, hIcon);
+    trayIcon.setHandle(hWnd, hIcon);
     trayIcon.add();
     trayIcon.enable = config.notification;
   
-    // 設定 読込済み → バックアップ開始
+    // コンフィグ読込済み → バックアップ開始
     if (configLoadFlag) applyAndSart();
-    else ui.stopButton.enable(false);   // 停止ボタン 無効
 }

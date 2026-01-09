@@ -8,7 +8,7 @@ public:
     // 定数
     static constexpr size_t EXTENSIONS_LENGTH = 5;	// 登録可能数
     static constexpr size_t EXTENSION_LENGTH = 32;	// 拡張子の最大文字数
-    static constexpr size_t TIME_INPUT_LENGTH = 8;  // 分 秒 受取用 文字サイズ
+    static constexpr size_t TIME_INPUT_LENGTH = 8;  // 秒 受取用文字サイズ
 
     // 型
     using Extension = WCHAR[EXTENSION_LENGTH];

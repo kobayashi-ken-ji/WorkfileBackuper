@@ -7,7 +7,7 @@
 
 /**
 * コンストラクタ / フォルダ監視を開始
-* @param pathName       監視するフォルダ
+* @param pathName       監視するフォルダのパス
 * @param notifyFilter   通知条件 (FILE_NOTIFY_CHANGE~)
 * @param hStopSignal    停止用イベント (シグナル化することで待機が終了)
 */
@@ -33,13 +33,9 @@ bool WatchFolder::isInvalidHandle() const {
 }
 
 
-// フォルダ監視の終了 を待機
-DWORD WatchFolder::waitChange(DWORD milliSeconds) const {
-    return WaitForSingleObject(handle, milliSeconds);
-}
-
-
-// フォルダ監視の終了 or 停止信号 を待機
+// フォルダ監視の終了 or 停止フラグのシグナル化 を待機
+// @param milliSeconds タイムアウトまでのミリ秒
+// @returns WatchFolderWaitResultのいずれか
 DWORD WatchFolder::waitChangeOrStopsignal(DWORD milliSeconds) const {
     return WaitForMultipleObjects(
         2,              // ハンドル数

@@ -1,14 +1,18 @@
 #include "../include/ApplicationMutex.h"
 
+//=============================================================================
 // 多重起動防止クラス
 // ハンドルのライフサイクルを管理
-
+//=============================================================================
 
 // コンストラクタ
-ApplicationMutex::ApplicationMutex(const WCHAR* name) : name(name), handle(nullptr) {}
+ApplicationMutex::ApplicationMutex(const WCHAR* name)
+    : name(name), handle(nullptr) {}
 
 // デストラクタ (ハンドルの解放)
-ApplicationMutex::~ApplicationMutex() { close(); }
+ApplicationMutex::~ApplicationMutex() { 
+    close();
+}
 
 
 // 既にアプリが起動しているか (重複起動したか)

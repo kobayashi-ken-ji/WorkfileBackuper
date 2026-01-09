@@ -93,7 +93,7 @@ UiElements::UiElements() :
 {}
 
 
-// 子ウィンドウを生成
+// 子ウィンドウを生成 (WM_CREATE の処理)
 void UiElements::createAll(const CreateWindowArgs &args) {
 
     InitCommonControls();

@@ -45,7 +45,12 @@ public:
     // 履歴表示
     EditBox history;
 
+    // コンストラクタ
     UiElements();
+
+    // 子ウィンドウを生成 (WM_CREATE の処理)
     void createAll(const CreateWindowArgs& args);
+
+    // 文字列、パネルを描画 (WM_PAINT の処理)
     void paintAll(HWND hWnd, HFONT hFont) const;
 };

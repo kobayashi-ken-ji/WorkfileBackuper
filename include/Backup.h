@@ -11,8 +11,8 @@
 
 
 //  バックアップ処理の流れ
-//      (1) フォルダを監視 (変更通知まで待機)
-//      (2) フォルダ内をチェック (指定拡張子のファイルを記録)
+//      (1) フォルダを監視 / 変更通知まで待機
+//      (2) フォルダ内をチェック / ファイル名・最終更新時を記録
 //      (3) ファイルが「新規 or 時間更新」ならファイルをコピー
 //      (4) 1へ戻る
 // 
@@ -34,7 +34,7 @@ private:
     // バックアップ処理用の設定
     ConfigStruct config;
 
-    // ファイルリスト用のマップ型
+    // ファイルリストの型 <ファイルパス, 最終更新時>
     using FileMap = std::unordered_map <
         std::filesystem::path,
         std::filesystem::file_time_type
@@ -45,13 +45,13 @@ private:
     //      新しく[今回] になった方へ記録していく
     FileMap  fileMap1;
     FileMap  fileMap2;
-    FileMap* fileMapNew = &fileMap1;
-    FileMap* fileMapOld = &fileMap2;
+    FileMap* pFileMapNew = &fileMap1;
+    FileMap* pFileMapOld = &fileMap2;
 
 public:
 
     // コンストラクタ
-    // ※ 参照型の引数は、このインスタンスよりも長寿命である必要がある
+    // ※ 引数は、このインスタンスよりも長寿命である必要がある
     Backup(TrayIcon& trayIcon, const EditBox& historyUI);
 
     // デストラクタ
@@ -60,8 +60,9 @@ public:
     // スレッドを作成する (バックアップ処理を開始する)
     // @returns コンフィグ値が不適切な場合のメッセージ、正常時はnullptr
     const WCHAR* createThread(const ConfigStruct& config);
-        
+
     // スレッドを終了
+    // @param notificationFlag デスクトップ通知に「終了した」と表示するか否か
     // @returns ハンドル開放の成否
     bool closeThread(bool notificationFlag = false);
 
@@ -71,6 +72,7 @@ private:
     static DWORD WINAPI thredFunc(LPVOID lpParamete);
     
     // バックアップの一連の処理
+    // @returns エラー情報 (正常終了時はnullptr)
     PCWSTR main();
 
     // 履歴UIの内容を更新
@@ -81,7 +83,7 @@ private:
     void updateHistory(const WCHAR* message1, const WCHAR* message2 = L"\0") const;
 
     // フォルダ内のファイル一覧を取得
-    // @param エラー情報 (正常終了時はnullptr)
+    // @returns エラー情報 (正常終了時はnullptr)
     PCWSTR getFileList();
 
     // ファイルの新旧を比較・バックアップ処理

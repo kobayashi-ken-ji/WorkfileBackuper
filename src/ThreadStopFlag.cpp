@@ -1,17 +1,19 @@
 #include "../include/ThreadStopFlag.h"
 #include <synchapi.h>
 #include <handleapi.h>
-#include <cassert>
 
 //=============================================================================
 // スレッド停止用のフラグ
 //=============================================================================
 
-// イベントを生成
-// (セキュリティ属性なし、手動リセット, 初期状態は非シグナル、イベント名なし)
-ThreadStopFlag::ThreadStopFlag() : handle{ CreateEventW(NULL, TRUE, FALSE, NULL) } {
-    assert(handle != NULL);
-}
+// コンストラクタ (イベントを生成)
+ThreadStopFlag::ThreadStopFlag()
+    : handle{ CreateEventW(
+        NULL,   // セキュリティ属性なし
+        TRUE,   // 手動リセット
+        FALSE,  // 初期状態は非シグナル
+        NULL    // イベント名なし
+    ) } {}
 
 // デストラクタ (イベントを解放)
 ThreadStopFlag::~ThreadStopFlag() { CloseHandle(handle); }

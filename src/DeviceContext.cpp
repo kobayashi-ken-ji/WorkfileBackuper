@@ -7,9 +7,9 @@
 //=============================================================================
 
 // コンストラクタ / 描画開始
-DeviceContext::DeviceContext(HWND hwnd, HFONT hFont) :
-    hwnd(hwnd),
-    hdc(BeginPaint(hwnd, &ps))
+DeviceContext::DeviceContext(HWND hWnd, HFONT hFont) :
+    hWnd(hWnd),
+    hdc(BeginPaint(hWnd, &ps))
 {
     // 背景モード、フォントを指定
     SetBkMode(hdc, TRANSPARENT);
@@ -18,7 +18,7 @@ DeviceContext::DeviceContext(HWND hwnd, HFONT hFont) :
 
 // デストラクタ / リソースを解放
 DeviceContext::~DeviceContext() {
-    EndPaint(hwnd, &ps);
+    EndPaint(hWnd, &ps);
 }
 
 

@@ -2,13 +2,19 @@
 
 #include "../include/Backup.h"
 #include "../include/WatchFolder.h"
-
-//#include "stdlib.h"
-//#include <stdio.h>
-//#include <iostream>
 #include <chrono>
-//#include <commctrl.h>
-//#pragma comment(lib, "comctl32.lib")
+
+//=============================================================================
+//  バックアップ処理の流れ
+//      (1) フォルダを監視 / 変更通知まで待機
+//      (2) フォルダ内をチェック / ファイル名・最終更新時を記録
+//      (3) ファイルが「新規 or 時間更新」ならファイルをコピー
+//      (4) 1へ戻る
+// 
+//  外部からの停止
+//      stopFlag.stop() を実行すると
+//      1の待機中に処理を抜け、スレッドを停止する
+//=============================================================================
 
 using namespace std;
 using namespace std::filesystem;
@@ -45,26 +51,14 @@ namespace AbortInfo {
 }
 
 
-//  バックアップ処理の流れ
-//      (1) フォルダを監視 (変更通知まで待機)
-//      (2) フォルダ内をチェック (指定拡張子のファイルを記録)
-//      (3) ファイルが「新規 or 時間更新」ならファイルをコピー
-//      (4) 1へ戻る
-// 
-//  外部からの停止
-//      stopFlag.stop() を実行すると
-//      1の待機中に処理を抜け、スレッドを停止する
-
-
-
 // コンストラクタ
-// ※ 参照型の引数は、このインスタンスよりも長寿命である必要がある
+// ※ 引数は、このインスタンスよりも長寿命である必要がある
 Backup::Backup(TrayIcon& trayIcon, const EditBox& historyUI) :
     trayIcon(trayIcon), historyUI(historyUI), config{},
     threadHandle(nullptr), threadID(0) {}
 
 
-// デストラクタで確実にスレッドを停止
+// デストラクタ / スレッドを停止
 Backup::~Backup() { closeThread(); }
 
 
@@ -87,11 +81,11 @@ const WCHAR* Backup::createThread(const ConfigStruct& config) {
     // 設定を複製 (この時点の値で固定)
     this->config = config;
 
-    // スレッドを安全に停止させるためのイベントハンドル
-    // スレッド停止後に再度生成されることがあるため、初期化を行う
+    // スレッド停止用のイベントハンドル
+    // スレッドは停止後に再度生成されることがあるため、初期化を行う
     stopFlag.init();
 
-    // this を lpParameter に渡す → スレッド関数(静的)で受取り
+    // this を渡す → スレッド関数(静的)で受取り
     threadHandle = CreateThread(
         NULL,	            // セキュリティ属性構造体へのポインタ	9x系はNULL
         0, 		            // 新スレッドのスタックサイズ 		0でデフォルト
@@ -150,6 +144,7 @@ DWORD WINAPI Backup::thredFunc(LPVOID lpParamete) {
 
     
 // バックアップの一連の処理
+// @returns エラー情報 (正常終了時はnullptr)
 PCWSTR Backup::main() {
 
     // 開始時のファイルの一覧を作成
@@ -196,7 +191,7 @@ PCWSTR Backup::main() {
 
             // 監視終了を待つ
             result = watch.waitChangeOrStopsignal(2000);
-            if (result == CHANGED) continue;            // 再チェックへ
+            if (result == CHANGED) continue;            // 再待機へ
             if (result == STOPED ) return nullptr;      // 正常終了
             if (result == TIMEOUT) break;               // 次の処理 へ
             return AbortInfo::WATCH_WAIT_ERR;           // 上記以外 → 失敗
@@ -248,12 +243,12 @@ PCWSTR Backup::getFileList() {
     if (err) return AbortInfo::SOURCE_ERR;
 
     // ファイル一覧 新旧入替
-    FileMap* fileMapTmp = fileMapNew;
-    fileMapNew = fileMapOld;
-    fileMapOld = fileMapTmp;
+    FileMap* pFileMapTmp = pFileMapNew;
+    pFileMapNew = pFileMapOld;
+    pFileMapOld = pFileMapTmp;
 
     // 新マップをクリア
-    (*fileMapNew).clear();
+    (*pFileMapNew).clear();
 
     // ディレクトリ内を走査
     for (const auto& entry : directory) {
@@ -274,7 +269,7 @@ PCWSTR Backup::getFileList() {
 
             // 拡張子がマッチ → マップに追加
             if (configExtension == fileExtension) {
-                (*fileMapNew)[filePath] = last_write_time(filePath);
+                (*pFileMapNew)[filePath] = last_write_time(filePath);
                 break;
             }
         }
@@ -288,12 +283,12 @@ void Backup::fileBackup() {
     using namespace std::chrono;
 
     // 新mapの要素 を取出す
-    for (const auto& [filePath, lastTime] : (*fileMapNew)) {
+    for (const auto& [filePath, lastTime] : (*pFileMapNew)) {
 
         // 新旧比較
         // 同じファイル → バックアップしない
-        if ((*fileMapOld).count(filePath) &&        // 同名ファイル
-            (*fileMapOld)[filePath] == lastTime)    // 最終更新時が同じ
+        if ((*pFileMapOld).count(filePath) &&        // 同名ファイル
+            (*pFileMapOld)[filePath] == lastTime)    // 最終更新時が同じ
             continue;
 
         //----------------------------------
@@ -362,7 +357,7 @@ void Backup::fileBackup() {
         // コピー失敗通知
         if (copyErr) {
             updateHistory(Info::COPY_ERR, fileNameW);
-            trayIcon.notify(Info::COPY_ERR);
+            trayIcon.notify(fileNameW, Info::COPY_ERR);
             continue;
         }
 

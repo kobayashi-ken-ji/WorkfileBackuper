@@ -9,14 +9,41 @@
 // constexpr はコンパイル時に値を決定するため、呼出し側から見えている必要がある。
 // つまり、ヘッダにコンストラクタ関連を全て書かなければならない。
 
-using Horizontals   = RowFormat::Horizontals;
-
 
 // コンストラクタ
-RowFormat::RowFormat(const Param& param, Ratios& format) :
-    horizontals{ getHorizontals(param, format) },
-    defaultH(param.defaultH)
-{}
+// {x, w} の配列を生成
+RowFormat::RowFormat(const Param& param, Ratios& ratios)
+    : horizontals{}, defaultH(param.defaultH) {
+
+    // 要素数を取得
+    int length = 0;
+    for (const double& ratio : ratios) {
+        if (ratio > 0) length++;
+        else break;
+    }
+
+    // 内側の幅 (余白を除いた幅)
+    const int totalMarginW = (length - 1) * param.marginW;
+    const int innerW = param.parentW - (param.paddingW * 2) - totalMarginW;
+
+    // 計算精度の為double
+    double x = (double)param.paddingW;
+
+    // {x, w}を配列に代入
+    for (int i=0; i<length; i++) {
+        Horizontal& horiz = horizontals[i];
+
+        // 横幅を % → ピクセル化
+        double w = (ratios[i] * innerW) / 100;
+
+        // 四捨五入して格納
+        horiz.x = static_cast<int>(x + 0.5);
+        horiz.w = static_cast<int>(w + 0.5);
+
+        // 次回のX座標
+        x += w + param.marginW;
+    }
+}
 
 
 // Rectを生成
@@ -35,41 +62,4 @@ Rect RowFormat::get(int index, int yAdd, int h) const {
     if (h == 0) h = defaultH;
 
     return Rect(horiz.x, y, horiz.w, h);
-}
-
-
-// {x, w} の配列を生成
-Horizontals RowFormat::getHorizontals(
-    const Param& param, Ratios& ratios) const {
-
-    // 要素数を取得
-    int length = 0;
-    for (const double& ratio : ratios) {
-        if (ratio > 0) length++;
-        else break;
-    }
-
-    // 内側の幅 (余白を除いた幅)
-    const int totalMarginW = (length - 1) * param.autoMarginW;
-    const int innerW = param.parentW - (param.paddingW * 2) - totalMarginW;
-
-    // ループ結果を格納
-    Horizontals horizontals = { 0 };
-    double x = (double)param.paddingW;
-
-    for (int i=0; i<length; i++) {
-        Horizontal& horiz = horizontals[i];
-
-        // Xを格納 (四捨五入)
-        horiz.x = static_cast<int>(x + 0.5);
-
-        // Wを格納 (% → ピクセル化)
-        double w = (ratios[i] * innerW) / 100;
-        horiz.w  = static_cast<int>(w + 0.5);
-
-        // 次回のX座標
-        x += w + param.autoMarginW;
-    }
-
-    return horizontals;
 }
