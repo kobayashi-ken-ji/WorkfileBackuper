@@ -6,18 +6,18 @@
 // メインウィンドウ内の要素をまとめたクラス
 //=============================================================================
 
-// ※透明なサイズ調整用境界線（Invisible Borders）が片側8pxずつある
-constexpr int
-    USABLE_W    = WindowSize::W - (8 * 2),  // 実際に描画できる幅
-    MARGIN_H    = 5,                        // 要素同士の間隔 (縦)
-    ROW_H       = 22,                       // 1行分 高さ
-    CRLF        = ROW_H + MARGIN_H,         // 改行高さ 通常
-    CRLF2       = CRLF + 10,                // 改行高さ 大
-    HISTORY_H   = 175;
+// ファイル内グローバル
+namespace {
 
+    // ※透明なサイズ調整用境界線（Invisible Borders）が片側8pxずつある
+    constexpr int
+        USABLE_W    = WindowSize::W - (8 * 2),  // 実際に描画できる幅
+        MARGIN_H    = 5,                        // 要素同士の間隔 (縦)
+        ROW_H       = 22,                       // 1行分 高さ
+        CRLF        = ROW_H + MARGIN_H,         // 改行高さ 通常
+        CRLF2       = CRLF + 10,                // 改行高さ 大
+        HISTORY_H   = 175;
 
-// 横一列のフォーマット (ウィンドウ幅の分割指定)
-namespace RowFormats {
 
     // 親ウィンドウ幅、左右のパディング、要素間のマージン、既定の高さ
     namespace Params {
@@ -26,6 +26,8 @@ namespace RowFormats {
             INNER  { USABLE_W, 25, 8, 22 };  // パネルの内側用
     }
 
+
+    // 横一列のフォーマット (ウィンドウ幅の分割指定)
     using namespace Params;
     const RowFormat
         PANEL               (OUTER, { 100 }),
@@ -36,18 +38,17 @@ namespace RowFormats {
         DIVIDE4             (INNER, { 25, 25, 25, 25 }),
         TIME                (INNER, { 70, 25, 5 }),     // [空白][00][秒]
         INDENT_SHORT_LONG   (INNER, { 5, 25, 70 });
-}
 
-// ウィンドウスタイル
-constexpr DWORD FOLDER_STYLE  = WS_VISIBLE | WS_CHILD | ES_LEFT | WS_BORDER | ES_AUTOHSCROLL;
-constexpr DWORD TIME_STYLE    = WS_VISIBLE | WS_CHILD | ES_RIGHT | WS_BORDER | ES_NUMBER;
-constexpr DWORD HISTORY_STYLE = WS_VISIBLE | WS_CHILD | ES_LEFT | WS_BORDER | WS_HSCROLL |
-                                ES_READONLY | ES_MULTILINE | ES_WANTRETURN; // 読取りのみ
+    // ウィンドウスタイル
+    constexpr DWORD FOLDER_STYLE  = WS_VISIBLE | WS_CHILD | ES_LEFT | WS_BORDER | ES_AUTOHSCROLL;
+    constexpr DWORD TIME_STYLE    = WS_VISIBLE | WS_CHILD | ES_RIGHT | WS_BORDER | ES_NUMBER;
+    constexpr DWORD HISTORY_STYLE = WS_VISIBLE | WS_CHILD | ES_LEFT | WS_BORDER | WS_HSCROLL |
+                                    ES_READONLY | ES_MULTILINE | ES_WANTRETURN; // 読取りのみ
+}
 
 
 // コンストラクタ
 // 初期化子を使用
-using namespace RowFormats;
 UiElements::UiElements() :
 
     folderPanel(PANEL.get(0, MARGIN_H * 2, CRLF * 2 + MARGIN_H)),

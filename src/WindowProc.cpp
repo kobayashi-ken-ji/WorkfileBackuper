@@ -9,7 +9,7 @@
 
 // アプリのデフォルト設定
 // コンフィグファイルが読み込まれなかった場合に使用される
-constexpr Config defaultConfig = {
+static constexpr Config defaultConfig = {
     L"D:\\作業フォルダ",	            // コピー元
     L"E:\\バックアップフォルダ",      // コピー先
     0,                              // ファイル変更から、バックアップまでの時間 (秒)
